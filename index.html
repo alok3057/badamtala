@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Order Form</title>
+    <style>
+        /* --- CSS for a professional look --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #e9eff5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .form-container { background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); width: 100%; max-width: 480px; }
+        h2 { color: #1f3b5e; text-align: center; margin-bottom: 30px; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; font-size: 0.95em; }
+        input[type="text"], input[type="number"], input[type="date"], textarea { width: 100%; padding: 12px; border: 1px solid #c9d6de; border-radius: 6px; box-sizing: border-box; transition: all 0.3s; font-size: 1em; }
+        input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus, textarea:focus { border-color: #007bff; box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); outline: none; }
+        #ord-id { background-color: #e6f0ff; color: #0056b3; font-weight: bold; }
+        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 1.1em; font-weight: 600; transition: background-color 0.3s, transform 0.1s; }
+        button:hover { background-color: #0056b3; }
+        button:active { transform: scale(0.99); }
+        
+        /* New CSS for the banner image */
+        .header-image { text-align: center; margin-bottom: 20px; }
+        .header-image img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); }
+
+        /* Popup Styling */
+        .popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .popup-content { background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); max-width: 350px; }
+        .order-display { margin-top: 20px; padding: 10px; border: 1px dashed #007bff; border-radius: 5px; text-align: left; background-color: #f7faff; }
+        .popup-content h3 { color: #28a745; }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <div class="header-image">
+        <img src="images/banner.jpg" alt="Company Banner">
+    </div>
+    <h2>New Order Entry Form</h2>
+    <form name="order-form" id="order-form">
+        
+        <div class="form-group">
+            <label for="ord-id">Order ID</label>
+            <input type="text" id="ord-id" name="ORD_ID" readonly> 
+        </div>
+
+        <div class="form-group">
+            <label for="customer-name">Customer Name</label>
+            <input type="text" id="customer-name" name="CustomerName" required>
+        </div>
+
+        <div class="form-group">
+            <label for="mobile-no">Mobile No</label>
+            <input type="text" id="mobile-no" name="MobileNo" pattern="[0-9]{10,15}" title="Mobile number must be 10-15 digits." required>
+        </div>
+
+        <div class="form-group">
+            <label for="address">Address</label>
+            <textarea id="address" name="Address" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="amount">Item Amount (Rs)</label>
+            <input type="number" id="amount" name="Amount" step="0.01" required oninput="calculateTotal()">
+        </div>
+
+        <div class="form-group">
+            <label for="date">Order Date</label>
+            <input type="date" id="date" name="Date" required>
+        </div>
+
+        <div class="form-group">
+            <label for="total-amount">Total Amount (incl. Tax/Fee)</label>
+             <input type="number" id="total-amount" name="TotalAmount" step="0.01" readonly required>
+        </div>
+
+        <button type="submit">Submit Order</button>
+    </form>
+</div>
+
+<div id="success-popup" class="popup">
+    <div class="popup-content">
+        <h3>✅ Order Submitted Successfully!</h3>
+        <p>Your data has been securely logged.</p>
+        <div class="order-display">
+            </div>
+        <button onclick="closePopup()">Close</button>
+    </div>
+</div>
+
+<script>
+    // 🛑 PASTE YOUR COPIED GOOGLE APPS SCRIPT WEB APP URL HERE 🛑
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbybcm--vg6YzCZbS_Hkh1IvUXhmSIBVQrSpZIk4CRftHPB44gjQ1lSZC33B2UF0igGKlg/exec';
+    
+    const form = document.getElementById('order-form');
+    const totalAmountInput = document.getElementById('total-amount');
+    const itemAmountInput = document.getElementById('amount');
+    const ordIdInput = document.getElementById('ord-id'); 
+    const popup = document.getElementById('success-popup');
+
+    // --- Utility Functions ---
+    
+    // Generates a simple time-based placeholder ID for display when the form opens
+    function generateOrderId() {
+        const timestamp = new Date().getTime();
+        // E.g., ORD-78241 (using last 5 digits of timestamp)
+        ordIdInput.value = `ORD-${timestamp.toString().slice(-5)}`; 
+    }
+
+    // Calculates Total Amount (Example: Adds a 10% tax/fee)
+    function calculateTotal() {
+        const itemAmount = parseFloat(itemAmountInput.value) || 0;
+        const totalAmount = (itemAmount * 1.10).toFixed(2); 
+        totalAmountInput.value = totalAmount;
+    }
+
+    // Displays the success popup with order details
+    function showPopup(formData, finalOrderId) {
+        document.querySelector('.order-display').innerHTML = `
+            <strong>Final Order ID:</strong> <span style="color:#007bff;">${finalOrderId}</span><br>
+            <strong>Customer:</strong> ${formData.get('CustomerName')}<br>
+            <strong>Amount:</strong> $${formData.get('TotalAmount')}
+        `;
+        popup.style.display = 'flex';
+    }
+
+    // Hides the success popup
+    function closePopup() {
+        popup.style.display = 'none';
+    }
+
+    // Initialize form on load
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('date').valueAsDate = new Date(); // Set today's date
+        generateOrderId(); // Generate initial placeholder ID
+        calculateTotal(); // Initial calculation
+    });
+
+    // --- Form Submission Logic ---
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        
+        // Disable button to prevent double submission
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Submitting...';
+
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+
+        fetch(scriptURL, { 
+            method: 'POST', 
+            body: params
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json(); // Get the JSON response from GAS
+        })
+        .then(data => {
+            if (data.result === 'success') {
+                // The GAS returns the new row number (e.g., 2 for the first submission)
+                // The final sequential ID is calculated as ORD-(row - 1). 
+                const finalOrderId = `ORD-${data.row - 1}`;
+                
+                showPopup(formData, finalOrderId); // Show success message
+                
+                // Reset form fields and prepare for the next order
+                form.reset(); 
+                document.getElementById('date').valueAsDate = new Date(); 
+                generateOrderId(); // Generate a new placeholder ID for the next order
+                calculateTotal(); // Recalculate total
+            } else {
+                alert(`Submission Error: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Submission Error:', error);
+            alert('An internal error occurred. Please check the network console and the Google Apps Script logs.');
+        })
+        .finally(() => {
+            // Re-enable the submit button
+            submitButton.disabled = false;
+            submitButton.textContent = 'Submit Order';
+        });
+    });
+</script>
+
+</body>
+</html>
